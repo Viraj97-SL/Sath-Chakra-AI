@@ -1,0 +1,101 @@
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from src.models.chakra_schema import UserChakraInput
+from src.database import save_user_snapshot
+from src.agents.chakra_agent import chakra_agent
+from src.utils.calendar_gen import create_ics_file
+from src.utils.email_service import send_reminder_email
+from src.utils.visualizer import generate_identity_card
+import os
+import traceback
+import asyncio
+import nest_asyncio
+
+nest_asyncio.apply()
+
+app = FastAPI(title="Sath-Chakra AI Backend")
+
+# 🛠️ 1. CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 🛠️ 2. File System Setup
+for folder in ["data/shares", "data/calendars"]:
+    os.makedirs(folder, exist_ok=True)
+
+# 🛠️ 3. Static File Serving (Prevents Blank Space Errors)
+app.mount("/data", StaticFiles(directory="data"), name="data")
+
+@app.post("/analyze-chakra")
+async def analyze_chakra(user_input: UserChakraInput, background_tasks: BackgroundTasks):
+    try:
+        # STEP 1: Define variable immediately to prevent scope errors
+        data_to_save = user_input.model_dump()
+
+        # STEP 2: Persistence
+        save_user_snapshot(data_to_save)
+
+        # STEP 3: Prepare state for LangGraph
+        initial_state = {
+            "user_data": data_to_save,
+            "language": user_input.language,
+            "analysis_report": "",
+            "action_plan": "",
+            "social_copy": ""
+        }
+
+        # STEP 4: Invoke AI Agent
+        final_state = chakra_agent.invoke(initial_state)
+
+        # STEP 5: Calendar Generation with Line Cleaning
+        full_text = final_state.get("action_plan", "")
+        event_lines = [line for line in full_text.split('\n') if "DATE:" in line]
+        clean_event_lines = []
+        for line in event_lines:
+            # Fixes the "1. DATE:" numbering issue seen in your logs
+            idx = line.find("DATE:")
+            if idx != -1:
+                clean_event_lines.append(line[idx:])
+
+        calendar_path = create_ics_file(clean_event_lines, user_input.user_id)
+
+        # STEP 6: Mythic Identity Card Generation
+        # Run sync function in executor to avoid blocking
+        loop = asyncio.get_running_loop()
+        share_card_path = await loop.run_in_executor(
+            None,
+            lambda: generate_identity_card(
+                user_id=user_input.user_id,
+                data=data_to_save,
+                social_json=final_state.get("social_copy", "{}")
+            )
+        )
+
+        # STEP 7: Background Email Task
+        email_body = f"ඔබේ 2026 උපායමාර්ගික සැලැස්ම සූදානම්.\n\n{final_state.get('analysis_report', '')}"
+        background_tasks.add_task(
+            send_reminder_email,
+            user_input.email,
+            "Sath-Chakra: Your 2026 Roadmap",
+            email_body
+        )
+
+        # 🚀 FINAL RETURN
+        return {
+            "status": "success",
+            "ai_analysis": final_state.get("analysis_report"),
+            "action_plan_2026": final_state.get("action_plan"),
+            "shareable_card_url": f"/data/shares/share_{user_input.user_id}.png",
+            "calendar_url": f"/data/calendars/roadmap_{user_input.user_id}.ics",
+            "message": "Protocol 2026 Initialized. Identity Artifact Ready."
+        }
+    except Exception as e:
+        print(f"CRITICAL INTEGRATION ERROR: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")

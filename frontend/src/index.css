@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Global Base Styles */
+body {
+  @apply bg-[#050505] text-slate-200 antialiased font-sans;
+  /* Adds a subtle deep-space glow */
+  background-image: radial-gradient(circle at 50% 50%, #0a0a0a 0%, #050505 100%);
+}

@@ -1,0 +1,28 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sath-Chakra AI//Life Strategy//EN
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: Progress in First 3 Months
+DTSTART;VALUE=DATE:20260401
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: Progress in First 6 Months
+DTSTART;VALUE=DATE:20260701
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: Progress in First 9 Months
+DTSTART;VALUE=DATE:20261001
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: Progress in First 12 Months
+DTSTART;VALUE=DATE:20260101
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+END:VCALENDAR

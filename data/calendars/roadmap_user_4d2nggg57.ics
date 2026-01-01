@@ -1,0 +1,32 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sath-Chakra AI//Life Strategy//EN
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: අත්තිවාරම දැමීම (Qui
+ ck Wins)
+DTSTART;VALUE=DATE:20260401
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: වර්ධනය සහ අනුකූලත
+ ාවය (Consistency)
+DTSTART;VALUE=DATE:20260701
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: වර්ධනය සහ අනුකූලත
+ ාවය (Consistency)
+DTSTART;VALUE=DATE:20261001
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3-Month Re-check: සමාලෝචනය සහ ඊළඟ වස
+ ර සඳහා සැලසුම් කිරීම
+DTSTART;VALUE=DATE:20270101
+DESCRIPTION:Sath-Chakra 3-Month Strategic Re-check. Review your 2026 Roadm
+ ap.
+END:VEVENT
+END:VCALENDAR

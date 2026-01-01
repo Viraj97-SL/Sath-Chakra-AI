@@ -7,4 +7,5 @@ pydantic
 fastapi
 uvicorn
 playwright
+langchain-groq
 

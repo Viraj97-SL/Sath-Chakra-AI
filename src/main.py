@@ -10,38 +10,32 @@ from src.utils.visualizer import generate_identity_card
 import os
 import traceback
 import asyncio
+import concurrent.futures
 import nest_asyncio
 
 nest_asyncio.apply()
 
 app = FastAPI(title="Sath-Chakra AI Backend")
 
-# 🛠️ 1. CORS Configuration
+# Change this block in your main.py
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"], # For deployment, "*" is the safest way to clear the sync error
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🛠️ 2. File System Setup
 for folder in ["data/shares", "data/calendars"]:
     os.makedirs(folder, exist_ok=True)
 
-# 🛠️ 3. Static File Serving (Prevents Blank Space Errors)
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
 @app.post("/analyze-chakra")
 async def analyze_chakra(user_input: UserChakraInput, background_tasks: BackgroundTasks):
     try:
-        # STEP 1: Define variable immediately to prevent scope errors
         data_to_save = user_input.model_dump()
-
-        # STEP 2: Persistence
         save_user_snapshot(data_to_save)
-
-        # STEP 3: Prepare state for LangGraph
         initial_state = {
             "user_data": data_to_save,
             "language": user_input.language,
@@ -49,35 +43,22 @@ async def analyze_chakra(user_input: UserChakraInput, background_tasks: Backgrou
             "action_plan": "",
             "social_copy": ""
         }
-
-        # STEP 4: Invoke AI Agent
         final_state = chakra_agent.invoke(initial_state)
-
-        # STEP 5: Calendar Generation with Line Cleaning
         full_text = final_state.get("action_plan", "")
         event_lines = [line for line in full_text.split('\n') if "DATE:" in line]
         clean_event_lines = []
         for line in event_lines:
-            # Fixes the "1. DATE:" numbering issue seen in your logs
             idx = line.find("DATE:")
             if idx != -1:
                 clean_event_lines.append(line[idx:])
-
         calendar_path = create_ics_file(clean_event_lines, user_input.user_id)
-
-        # STEP 6: Mythic Identity Card Generation
-        # Run sync function in executor to avoid blocking
+        # Run card gen in thread to avoid loop issues
         loop = asyncio.get_running_loop()
-        share_card_path = await loop.run_in_executor(
-            None,
-            lambda: generate_identity_card(
-                user_id=user_input.user_id,
-                data=data_to_save,
-                social_json=final_state.get("social_copy", "{}")
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            share_card_path = await loop.run_in_executor(
+                pool,
+                lambda: generate_identity_card(user_id=user_input.user_id, data=data_to_save, social_json=final_state.get("social_copy", "{}"))
             )
-        )
-
-        # STEP 7: Background Email Task
         email_body = f"ඔබේ 2026 උපායමාර්ගික සැලැස්ම සූදානම්.\n\n{final_state.get('analysis_report', '')}"
         background_tasks.add_task(
             send_reminder_email,
@@ -85,8 +66,6 @@ async def analyze_chakra(user_input: UserChakraInput, background_tasks: Backgrou
             "Sath-Chakra: Your 2026 Roadmap",
             email_body
         )
-
-        # 🚀 FINAL RETURN
         return {
             "status": "success",
             "ai_analysis": final_state.get("analysis_report"),

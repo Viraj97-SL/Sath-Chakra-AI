@@ -1,21 +1,21 @@
-# Use a Python base image that supports Playwright
+# Use the official Microsoft Playwright image for Python
 FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
-# Set work directory
 WORKDIR /app
 
-# Copy requirements and install
+# Step A: Copy only requirements first to leverage Docker cache
 COPY requirements.txt .
+
+# Step B: Install the playwright package via pip
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install playwright  # Extra safety: ensure the CLI is available
 
-# Install Playwright browsers (Chromium)
-RUN playwright install chromium
+# Step C: Install only the chromium browser binaries
+# We use the full python module path to avoid "command not found"
+RUN python -m playwright install chromium --with-deps
 
-# Copy the rest of the application
+# Step D: Copy your code and start
 COPY . .
 
-# Expose the port FastAPI runs on
 EXPOSE 8080
-
-# Command to run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]

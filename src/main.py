@@ -18,9 +18,13 @@ nest_asyncio.apply()
 app = FastAPI(title="Sath-Chakra AI Backend")
 
 # Change this block in your main.py
+# In src/main.py
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For deployment, "*" is the safest way to clear the sync error
+    allow_origins=[
+        "http://localhost:5173",
+        "https://sath-chakra-ai.vercel.app" # Add your actual Vercel domain here
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

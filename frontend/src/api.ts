@@ -1,8 +1,11 @@
 import axios from 'axios';
 
-// This links your Frontend to your FastAPI backend
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  // Get this URL from your Railway Dashboard Settings > Networking
+  baseURL: 'https://sath-chakra-ai-production.up.railway.app',
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 export default api;

@@ -7,7 +7,7 @@ export default function App() {
   const [results, setResults] = useState<any>(null);
 
   // Explicitly ensuring the backend port matches your Uvicorn instance
-  const backendUrl = "http://localhost:8000";
+  const backendUrl = "https://sath-chakra-ai-production.up.railway.app";
 
   return (
     <div className="flex min-h-screen bg-[#050505] text-slate-200 font-sans">

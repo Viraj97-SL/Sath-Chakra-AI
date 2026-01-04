@@ -13,3 +13,4 @@ pillow
 nest-asyncio==1.6.0
 langchain-core>=0.1.25
 huggingface_hub
+slowapi

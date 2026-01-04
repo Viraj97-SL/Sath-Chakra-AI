@@ -35,8 +35,9 @@ def send_reminder_email(recipient_email, subject, body_sinhala):
         server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
         server.send_message(msg)
         server.quit()
+        print(f"DEBUG: Email successfully sent to {recipient_email}")
         return True
     except Exception as e:
         # This will now catch and print errors more effectively for Railway logs
-        print(f"Email Error (Port 465): {e}")
+        print(f"DEBUG: Email FAILED to {recipient_email}. Error: {e}")
         return False

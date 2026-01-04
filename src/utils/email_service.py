@@ -7,13 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def send_reminder_email(recipient_email, subject, body_sinhala):
-    """Sends a strategic reminder email to the user."""
+    """Sends a strategic reminder email to the user using SSL (Port 465)."""
     msg = MIMEMultipart()
     msg['From'] = os.getenv("EMAIL_USER")
     msg['To'] = recipient_email
     msg['Subject'] = subject
 
-    # Using HTML to ensure the Sinhala text renders correctly in modern email clients
     html = f"""
     <html>
       <body style="font-family: sans-serif;">
@@ -27,12 +26,17 @@ def send_reminder_email(recipient_email, subject, body_sinhala):
     msg.attach(MIMEText(html, 'html'))
 
     try:
-        server = smtplib.SMTP(os.getenv("EMAIL_HOST"), int(os.getenv("EMAIL_PORT")))
-        server.starttls() # Secure the connection
+        # Use SMTP_SSL for Port 465
+        # This removes the need for server.starttls()
+        server = smtplib.SMTP_SSL(
+            os.getenv("EMAIL_HOST"),
+            int(os.getenv("EMAIL_PORT"))
+        )
         server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
         server.send_message(msg)
         server.quit()
         return True
     except Exception as e:
-        print(f"Email Error: {e}")
+        # This will now catch and print errors more effectively for Railway logs
+        print(f"Email Error (Port 465): {e}")
         return False

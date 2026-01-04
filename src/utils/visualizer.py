@@ -74,7 +74,7 @@ def generate_identity_card(user_id, data, social_json):
     # Generate hero image with HF
     client = InferenceClient(token=os.getenv("HF_TOKEN"))
     try:
-        image_bytes = client.text_to_image(meta['image_prompt'], model="black-forest-labs/FLUX.1-schnell")  # Fast free model
+        image_bytes = client.text_to_image(meta['image_prompt'], model="stabilityai/stable-diffusion-xl-base-1.0")  # Fast free model
         hero_path = f"data/shares/hero_{user_id}.png"
         with open(hero_path, "wb") as f:
             f.write(image_bytes)

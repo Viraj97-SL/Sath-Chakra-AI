@@ -6,8 +6,27 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [results, setResults] = useState<any>(null);
 
-  // Explicitly ensuring the backend port matches your Uvicorn instance
   const backendUrl = "https://sath-chakra-ai-production.up.railway.app";
+
+  // Force Download Logic: Fetches the image and triggers a browser save
+  const handleDownload = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Sath-Chakra-Identity.png'); // Sets the file name
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url); // Clean up memory
+    } catch (err) {
+      console.error("Download failed:", err);
+      // Fallback: Opens in new tab if the blob fetch fails
+      window.open(imageUrl, '_blank');
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#050505] text-slate-200 font-sans">
@@ -33,10 +52,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 p-12 overflow-y-auto">
         {activeTab === 'dashboard' && (
-          <ChakraForm onResultsReady={(data) => {
-            setResults(data);
-            // Optionally auto-switch to roadmap upon success
-          }} />
+          <ChakraForm onResultsReady={(data) => setResults(data)} />
         )}
 
         {activeTab === 'roadmap' && (
@@ -44,12 +60,8 @@ export default function App() {
             <h2 className="text-3xl font-black uppercase italic tracking-tighter">Strategic Roadmap</h2>
             {results ? (
               <>
-                {/* Download link for .ics file */}
                 <a
                   href={`${backendUrl}${results.calendar_url}`}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex items-center gap-4 bg-white/5 p-6 rounded-3xl border border-white/5 hover:bg-white/10 transition group"
                 >
                   <Calendar className="text-emerald-500 group-hover:scale-110 transition" />
@@ -58,8 +70,12 @@ export default function App() {
                     <p className="text-sm text-slate-400">Download .ics file for Calendar integration</p>
                   </div>
                 </a>
-                <div className="bg-[#0a0a0a] p-10 rounded-[2.5rem] border border-white/5 text-slate-300 shadow-2xl">
-                  <pre className="whitespace-pre-wrap font-sans leading-relaxed">{results.ai_analysis}</pre>
+
+                {/* Scrollable Container for Full Analysis */}
+                <div className="bg-[#0a0a0a] p-10 rounded-[2.5rem] border border-white/5 text-slate-300 shadow-2xl max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <pre className="whitespace-pre-wrap font-sans leading-relaxed text-lg">
+                    {results.ai_analysis}
+                  </pre>
                 </div>
               </>
             ) : (
@@ -74,18 +90,19 @@ export default function App() {
             {results ? (
               <>
                 <div className="bg-black p-4 rounded-[3rem] border border-white/10 shadow-[0_0_50px_-12px_rgba(16,185,129,0.2)] inline-block">
-                  <img src={`${backendUrl}${results.shareable_card_url}`} alt="Card" className="max-w-full rounded-[2rem] border border-white/5" />
+                  <img
+                    src={`${backendUrl}${results.shareable_card_url}`}
+                    alt="Card"
+                    className="max-w-full rounded-[2rem] border border-white/5"
+                  />
                 </div>
                 <div className="flex justify-center">
-                  <a
-                    href={`${backendUrl}${results.shareable_card_url}`}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => handleDownload(`${backendUrl}${results.shareable_card_url}`)}
                     className="inline-flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-12 py-5 rounded-2xl shadow-xl shadow-emerald-900/20 transition-all uppercase tracking-widest text-xs"
                   >
                     <Download size={18}/> Download High-Res Card
-                  </a>
+                  </button>
                 </div>
               </>
             ) : (

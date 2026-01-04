@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import json
 import re
 from playwright.sync_api import sync_playwright
+from huggingface_hub import InferenceClient  # New for HF
 
 def generate_chakra_plot(current_vals, ideal_vals, user_id):
     """ Generates a dual-layered Spider (Radar) Graph. Refers to: Strategic alignment of life dimensions. """
@@ -64,10 +65,23 @@ def generate_identity_card(user_id, data, social_json):
         meta = {
             "archetype": "The Awakened Path",
             "quest_line": "Forging a legacy of balance and growth.",
-            "theme": "STOIC"
+            "theme": "STOIC",
+            "image_prompt": "Illustration of a stoic philosopher in ancient setting"
         }
 
     stats = data['current_status']
+
+    # Generate hero image with HF
+    client = InferenceClient(token=os.getenv("HF_TOKEN"))
+    try:
+        image_bytes = client.text_to_image(meta['image_prompt'], model="black-forest-labs/FLUX.1-schnell")  # Fast free model
+        hero_path = f"data/shares/hero_{user_id}.png"
+        with open(hero_path, "wb") as f:
+            f.write(image_bytes)
+        hero_image_url = hero_path  # Local path for Playwright (prod: upload to cloud if needed)
+    except Exception as e:
+        print(f"HF Image Gen Error: {e}")
+        hero_image_url = "https://via.placeholder.com/600x300?text=Hero+Image"  # Fallback
 
     html_content = f"""
     <html>
@@ -84,6 +98,7 @@ def generate_identity_card(user_id, data, social_json):
             <div class="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
                 <svg width="100%" height="100%"><rect width="100%" height="100%" fill="url(#grid)" /></svg>
             </div>
+            <img src="{hero_image_url}" alt="Hero Illustration" class="w-full h-40 object-cover rounded-lg mb-4 z-10">  # Added hero image
             <div class="text-center z-10">
                 <h1 class="mythic-font text-5xl text-emerald-400 uppercase tracking-tighter mb-2">{meta['archetype']}</h1>
                 <p class="text-white/40 text-xs font-black tracking-[0.4em] uppercase">2026 Identity Artifact</p>
@@ -96,7 +111,7 @@ def generate_identity_card(user_id, data, social_json):
             </div>
             <div class="space-y-8 z-10 text-center">
                 <p class="italic text-slate-300 text-xl leading-relaxed px-4">"{meta['quest_line']}"</p>
-                <div class="pt-8 border-t border-white/10 font-black text-[10px] tracking-[0.5em] text-white/20 uppercase">
+                <div class="pt-8 border-t border-white/10 font-black text-[10px] tracking-[0.4em] text-white/20 uppercase">
                     SATH-CHAKRA AI · PROTOCOL 2026
                 </div>
             </div>

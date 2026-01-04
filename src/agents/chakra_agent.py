@@ -133,21 +133,15 @@ def social_media_node(state: AgentState):
         google_api_key=os.getenv("GOOGLE_API_KEY")
     )
 
-    prompt = f"""
-    Analyze these life gaps (Current vs Ideal): {state['user_data']}
-
-    Task: Define a 2026 Mythic Identity Card.
-    1. Choose an Archetype (e.g., The Phoenix, The Relentless Builder, The Balanced Guardian).
-    2. Write a 'Quest Line' (1 sentence, epic tone): e.g., 'In 2026, you forge wealth without sacrificing inner peace.'
-    3. Select a Theme: 'GREEK_MYTH', 'SHONEN_ANIME', 'CYBERPUNK', or 'STOIC'.
-
-    Return ONLY a JSON object:
-    {{
-      "archetype": "string",
-      "quest_line": "string",
-      "theme": "string"
-    }}
-    """
+    prompt = f""" 
+        Analyze these life gaps (Current vs Ideal): {state['user_data']}
+        Task: Define a 2026 Mythic Identity Card.
+        1. Choose an Archetype (e.g., The Phoenix, The Relentless Builder, The Balanced Guardian).
+        2. Write a 'Quest Line' (1 sentence, epic tone): e.g., 'In 2026, you forge wealth without sacrificing inner peace.'
+        3. Select a Theme: 'GREEK_MYTH', 'SHONEN_ANIME', 'CYBERPUNK', or 'STOIC'.
+        4. Suggest an Image Prompt (1 sentence for text-to-image): e.g., 'Illustration of Zeus wielding lightning for Greek myth theme, epic digital art.'
+        Return ONLY a JSON object: {{ "archetype": "string", "quest_line": "string", "theme": "string", "image_prompt": "string" }}
+        """
     response = llm.invoke([HumanMessage(content=prompt)])
     # We store this JSON string to be parsed by the image generator
     return {"social_copy": response.content}

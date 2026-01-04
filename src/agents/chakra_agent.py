@@ -1,6 +1,6 @@
 import os
 from typing import TypedDict
-# from langchain_google_genai import ChatGoogleGenerativeAI  # Gemini import
+from langchain_google_genai import ChatGoogleGenerativeAI  # Gemini import
 from langchain_groq import ChatGroq  # Added for Groq integration
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
@@ -22,19 +22,19 @@ def analyzer_node(state: AgentState):
     """Analyzes life dimensions using Groq Llama 3."""
 
     # --- GEMINI VERSION (Commented Out) ---
-    # llm = ChatGoogleGenerativeAI(
-    #     model="gemini-2.5-flash",
-    #     temperature=0.7,
-    #     google_api_key=os.getenv("GOOGLE_API_KEY")
-    # )
+    llm = ChatGoogleGenerativeAI(
+         model="gemini-2.5-flash",
+         temperature=0.7,
+         google_api_key=os.getenv("GOOGLE_API_KEY")
+     )
 
     # --- GROQ VERSION (Active) ---
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        temperature=0.75,  # Increased slightly for better descriptive flow
-        max_tokens=3096,  # Critical: Allows the full long-form response
-        groq_api_key=os.getenv("GROQ_API_KEY")
-    )
+    #llm = ChatGroq(
+    #    model="llama-3.3-70b-versatile",
+    #    temperature=0.75,  # Increased slightly for better descriptive flow
+    #    max_tokens=3096,  # Critical: Allows the full long-form response
+    #    groq_api_key=os.getenv("GROQ_API_KEY")
+    #)
 
     prompt = f"""
     ඔබ ඉතා අත්දැකීම් බහුල මනෝවිද්‍යාඥයෙකු සහ ජීවන උපදේශකයෙකු ලෙස ක්‍රියා කරන්න. 
@@ -66,18 +66,18 @@ def analyzer_node(state: AgentState):
 def strategist_node(state: AgentState):
     """Generates a tactical 2026 roadmap."""
     # --- GEMINI VERSION ---
-    # llm = ChatGoogleGenerativeAI(
-    #     model="gemini-2.5-flash",
-    #     temperature=0.3,
-    #     google_api_key=os.getenv("GOOGLE_API_KEY")
-    # )
+    llm = ChatGoogleGenerativeAI(
+         model="gemini-2.5-flash",
+         temperature=0.3,
+         google_api_key=os.getenv("GOOGLE_API_KEY")
+     )
 
     # --- GROQ VERSION ---
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        temperature=0.3,
-        groq_api_key=os.getenv("GROQ_API_KEY")
-    )
+    #llm = ChatGroq(
+    #    model="llama-3.3-70b-versatile",
+    #    temperature=0.3,
+    #    groq_api_key=os.getenv("GROQ_API_KEY")
+    #)
 
     prompt = f"""
         පහත විශ්ලේෂණය මත පදනම්ව 2026 වසර සඳහා 'Success Path' එකක් සකසන්න:
@@ -100,18 +100,18 @@ def strategist_node(state: AgentState):
 def event_planner_node(state: AgentState):
     """Extracts 3-month check-in dates and milestones for the calendar."""
     # --- GEMINI VERSION ---
-    # llm = ChatGoogleGenerativeAI(
-    #     model="gemini-2.5-flash",
-    #     temperature=0.1,
-    #     google_api_key=os.getenv("GOOGLE_API_KEY")
-    # )
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0.7,
+        google_api_key=os.getenv("GOOGLE_API_KEY")
+    )
 
     # --- GROQ VERSION ---
-    llm = ChatGroq(
-        model="llama-3.1-8b-instant", # Llama 8B is faster for extraction tasks
-        temperature=0.1,
-        groq_api_key=os.getenv("GROQ_API_KEY")
-    )
+    #llm = ChatGroq(
+    #    model="llama-3.1-8b-instant", # Llama 8B is faster for extraction tasks
+    #    temperature=0.1,
+    #    groq_api_key=os.getenv("GROQ_API_KEY")
+    #)
 
     prompt = f"""
     Based on this 2026 Action Plan: {state['action_plan']}
@@ -127,10 +127,10 @@ def event_planner_node(state: AgentState):
 
 def social_media_node(state: AgentState):
     """Acts as the Game Master to define the user's 2026 Mythic Identity."""
-    llm = ChatGroq(
-        model="llama-3.1-8b-instant",
-        temperature=0.8,
-        groq_api_key=os.getenv("GROQ_API_KEY")
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0.7,
+        google_api_key=os.getenv("GOOGLE_API_KEY")
     )
 
     prompt = f"""

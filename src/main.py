@@ -92,17 +92,24 @@ async def analyze_chakra(request: Request, user_input: UserChakraInput, backgrou
         event_lines = [line for line in full_text.split('\n') if "DATE:" in line]
         calendar_path = create_ics_file(event_lines, user_input.user_id)
 
-        # Card generation
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            share_card_path = await loop.run_in_executor(
-                pool,
-                lambda: generate_identity_card(
-                    user_id=user_input.user_id,
-                    data=data_to_save,
-                    social_json=final_state.get("social_copy", "{}")
+        # Card generation — now handles failure gracefully
+        share_card_url = None
+        try:
+            loop = asyncio.get_running_loop()
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                share_card_path = await loop.run_in_executor(
+                    pool,
+                    lambda: generate_identity_card(
+                        user_id=user_input.user_id,
+                        data=data_to_save,
+                        social_json=final_state.get("social_copy", "{}")
+                    )
                 )
-            )
+            if share_card_path:
+                share_card_url = f"/data/shares/share_{user_input.user_id}.png"
+        except Exception as card_err:
+            print(f"WARNING: Card generation failed (non-fatal): {card_err}")
+            share_card_url = None
 
         # Background Email task
         email_body = f"ඔබේ 2026 උපායමාර්ගික සැලැස්ම සූදානම්.\n\n{final_state.get('analysis_report', '')}"
@@ -117,7 +124,7 @@ async def analyze_chakra(request: Request, user_input: UserChakraInput, backgrou
             "status": "success",
             "ai_analysis": final_state.get("analysis_report"),
             "action_plan_2026": final_state.get("action_plan"),
-            "shareable_card_url": f"/data/shares/share_{user_input.user_id}.png",
+            "shareable_card_url": share_card_url,
             "calendar_url": f"/data/calendars/roadmap_{user_input.user_id}.ics",
             "message": "Protocol 2026 Initialized. Identity Artifact Ready."
         }

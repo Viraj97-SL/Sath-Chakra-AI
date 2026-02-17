@@ -12,16 +12,12 @@ import os
 import traceback
 import asyncio
 import concurrent.futures
-import nest_asyncio
 
 # Rate Limiting Imports
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
-
-nest_asyncio.apply()
-
 
 # 1. CUSTOM KEY FUNCTION FOR RAILWAY
 # This extracts the real user's IP from the proxy headers provided by Railway.
@@ -33,12 +29,10 @@ def get_railway_user_ip(request: Request):
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
-
 # 2. INITIALIZE LIMITER
 limiter = Limiter(key_func=get_railway_user_ip)
 app = FastAPI(title="Sath-Chakra AI Backend")
 app.state.limiter = limiter
-
 
 # 3. CUSTOM RATE LIMIT EXCEEDED HANDLER
 @app.exception_handler(RateLimitExceeded)
@@ -51,7 +45,6 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
             "message_si": "ඔබ පැයකට ලබා ගත හැකි උපරිම සීමාව පසු කර ඇත. කරුණාකර පසුව නැවත උත්සාහ කරන්න."
         }
     )
-
 
 # CORS CONFIGURATION
 app.add_middleware(
@@ -67,7 +60,6 @@ for folder in ["data/shares", "data/calendars"]:
     os.makedirs(folder, exist_ok=True)
 
 app.mount("/data", StaticFiles(directory="data"), name="data")
-
 
 # 4. APPLY RATE LIMIT TO ROUTE
 @app.post("/analyze-chakra")
@@ -95,6 +87,8 @@ async def analyze_chakra(request: Request, user_input: UserChakraInput, backgrou
         # Card generation — now handles failure gracefully
         share_card_url = None
         try:
+            # We use ThreadPoolExecutor here, so we DO NOT need nest_asyncio
+            # The separate thread handles the synchronous Playwright code cleanly.
             loop = asyncio.get_running_loop()
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 share_card_path = await loop.run_in_executor(

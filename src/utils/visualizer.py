@@ -5,9 +5,12 @@ import io
 import base64
 import json
 import re
+import structlog
 from PIL import Image
 from playwright.sync_api import sync_playwright
 from huggingface_hub import InferenceClient
+
+logger = structlog.get_logger()
 
 
 def generate_chakra_plot(current_vals, ideal_vals, user_id):
@@ -71,7 +74,7 @@ def generate_identity_card(user_id, data, social_json):
         else:
             raise ValueError("No JSON found")
     except Exception as e:
-        print(f"JSON Parse Error: {e}")
+        logger.error("json_parse_error", error=str(e))
         meta = {
             "archetype": "THE ASCENDANT",
             "quest_line": "Mastering every domain to reach unparalleled heights.",
@@ -93,7 +96,7 @@ def generate_identity_card(user_id, data, social_json):
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         hero_image_src = f"data:image/png;base64,{img_str}"
     except Exception as e:
-        print(f"HF Image Gen Error: {e}")
+        logger.error("hf_image_gen_error", error=str(e))
         hero_image_src = "https://via.placeholder.com/600x400/000000/FFFFFF?text=IDENTITY+CORE"
 
     # 3. FULLY SELF-CONTAINED HTML TEMPLATE
@@ -240,11 +243,11 @@ def generate_identity_card(user_id, data, social_json):
         page.wait_for_timeout(2000)
 
         page.locator("#card").screenshot(path=path, omit_background=True)
-        print(f"DEBUG: Identity card generated at {path}")
+        logger.info("identity_card_generated", path=path)
         return path
 
     except Exception as e:
-        print(f"Playwright card generation failed: {e}")
+        logger.error("playwright_card_generation_failed", error=str(e))
         return None
     finally:
         # FIX: Manual cleanup prevents InvalidStateError cascade

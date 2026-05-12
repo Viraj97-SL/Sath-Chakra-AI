@@ -3,8 +3,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
+import structlog
 
 load_dotenv()
+
+logger = structlog.get_logger()
 
 def send_reminder_email(recipient_email, subject, body_sinhala):
     """Sends a strategic reminder email to the user using SSL (Port 465)."""
@@ -35,9 +38,8 @@ def send_reminder_email(recipient_email, subject, body_sinhala):
         server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
         server.send_message(msg)
         server.quit()
-        print(f"DEBUG: Email successfully sent to {recipient_email}")
+        logger.info("email_sent", recipient=recipient_email)
         return True
     except Exception as e:
-        # This will now catch and print errors more effectively for Railway logs
-        print(f"DEBUG: Email FAILED to {recipient_email}. Error: {e}")
+        logger.error("email_failed", recipient=recipient_email, error=str(e))
         return False

@@ -1,37 +1,76 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+
 from src.models.chakra_schema import UserChakraInput
 from src.database import save_user_snapshot
 from src.agents.chakra_agent import chakra_agent
 from src.utils.calendar_gen import create_ics_file
 from src.utils.email_service import send_reminder_email
 from src.utils.visualizer import generate_identity_card
+from src.utils.logging_config import configure_logging
+from src.db.connection import db_lifespan, get_database
+from src.db.indexes import create_all_indexes
 
 import os
 import traceback
 import asyncio
 import concurrent.futures
+import structlog
 
-# Rate Limiting Imports
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from fastapi.responses import JSONResponse
+configure_logging()
+logger = structlog.get_logger()
 
-# 1. CUSTOM KEY FUNCTION FOR RAILWAY
-# This extracts the real user's IP from the proxy headers provided by Railway.
-def get_railway_user_ip(request: Request):
-    # Railway passes the real IP in 'X-Forwarded-For'
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio
+    from src.scheduler.jobs import start_scheduler, stop_scheduler
+    from src.discord_bot.bot import start_bot
+
+    async with db_lifespan():
+        db = get_database()
+        await create_all_indexes(db)
+
+        # Scheduler (always on)
+        start_scheduler()
+
+        # Discord bot (only if token is configured)
+        discord_task = None
+        if os.getenv("DISCORD_BOT_TOKEN"):
+            discord_task = asyncio.create_task(start_bot())
+            logger.info("discord_bot_task_started")
+        else:
+            logger.info("discord_bot_skipped", reason="DISCORD_BOT_TOKEN not set")
+
+        logger.info("startup_complete")
+        yield
+
+        # Shutdown
+        stop_scheduler()
+        if discord_task:
+            discord_task.cancel()
+            try:
+                await discord_task
+            except (asyncio.CancelledError, Exception):
+                pass
+    logger.info("shutdown_complete")
+
+
+def get_railway_user_ip(request: Request) -> str:
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        # Get the first IP in the list (the original client)
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
-# 2. INITIALIZE LIMITER
+
 limiter = Limiter(key_func=get_railway_user_ip)
-app = FastAPI(title="Sath-Chakra AI Backend")
+app = FastAPI(title="Sath-Chakra AI Backend", lifespan=lifespan)
 app.state.limiter = limiter
 
 # 3. CUSTOM RATE LIMIT EXCEEDED HANDLER
@@ -61,13 +100,16 @@ for folder in ["data/shares", "data/calendars"]:
 
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
+from src.db.health import create_health_router
+app.include_router(create_health_router())
+
 # 4. APPLY RATE LIMIT TO ROUTE
 @app.post("/analyze-chakra")
 @limiter.limit("5/hour")  # Limit: 5 requests per hour per unique user
 async def analyze_chakra(request: Request, user_input: UserChakraInput, background_tasks: BackgroundTasks):
     try:
         data_to_save = user_input.model_dump()
-        save_user_snapshot(data_to_save)
+        await save_user_snapshot(data_to_save)
 
         initial_state = {
             "user_data": data_to_save,
@@ -102,7 +144,7 @@ async def analyze_chakra(request: Request, user_input: UserChakraInput, backgrou
             if share_card_path:
                 share_card_url = f"/data/shares/share_{user_input.user_id}.png"
         except Exception as card_err:
-            print(f"WARNING: Card generation failed (non-fatal): {card_err}")
+            logger.warning("card_generation_failed", error=str(card_err))
             share_card_url = None
 
         # Background Email task
@@ -123,6 +165,5 @@ async def analyze_chakra(request: Request, user_input: UserChakraInput, backgrou
             "message": "Protocol 2026 Initialized. Identity Artifact Ready."
         }
     except Exception as e:
-        print(f"CRITICAL INTEGRATION ERROR: {str(e)}")
-        print(traceback.format_exc())
+        logger.error("integration_error", error=str(e), traceback=traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
